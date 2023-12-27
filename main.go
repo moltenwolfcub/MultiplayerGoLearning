@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 )
@@ -42,7 +44,7 @@ func (s *Server) acceptLoop() {
 			continue
 		}
 
-		fmt.Println("new connection to the server: ", conn.RemoteAddr())
+		fmt.Println("New connection to the server: ", conn.RemoteAddr())
 
 		go s.readLoop(conn)
 	}
@@ -53,6 +55,12 @@ func (s *Server) readLoop(conn net.Conn) {
 	buf := make([]byte, 2048)
 	for {
 		n, err := conn.Read(buf)
+
+		if errors.Is(err, io.EOF) {
+			fmt.Println("Lost connection to peer: ", conn.RemoteAddr())
+			return
+		}
+
 		if err != nil {
 			fmt.Println("read error: ", err)
 			continue
