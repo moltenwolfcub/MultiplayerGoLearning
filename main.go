@@ -15,7 +15,7 @@ type Packet struct {
 
 type Server struct {
 	listenAddr string
-	ln         net.Listener
+	listener   net.Listener
 	quitCh     chan struct{}
 	msgCh      chan Packet
 }
@@ -29,12 +29,12 @@ func NewServer(listenAddr string) *Server {
 }
 
 func (s *Server) Start() error {
-	ln, err := net.Listen("tcp", s.listenAddr)
+	listener, err := net.Listen("tcp", s.listenAddr)
 	if err != nil {
 		return err
 	}
-	defer ln.Close()
-	s.ln = ln
+	defer listener.Close()
+	s.listener = listener
 
 	go s.acceptLoop()
 
@@ -46,7 +46,7 @@ func (s *Server) Start() error {
 
 func (s *Server) acceptLoop() {
 	for {
-		conn, err := s.ln.Accept()
+		conn, err := s.listener.Accept()
 		if err != nil {
 			fmt.Println("accept error: ", err)
 			continue
