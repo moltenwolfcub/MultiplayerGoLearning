@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"time"
 )
 
 type Server struct {
@@ -33,6 +34,7 @@ func (s *Server) Start() error {
 	s.listener = listener
 
 	go s.mainLoop()
+	go s.packetLoop()
 	go s.acceptLoop()
 
 	<-s.quitCh
@@ -79,10 +81,23 @@ func (s *Server) readLoop(conn net.Conn) {
 	}
 }
 
+func (s *Server) packetLoop() {
+	for rawPacket := range s.inMsgCh {
+		s.handlePacket(rawPacket)
+	}
+}
+
 func (s *Server) mainLoop() {
 	for {
-		for rawPacket := range s.inMsgCh {
-			s.handlePacket(rawPacket)
+		time.Sleep(time.Second)
+
+		for _, conn := range s.peers {
+			conn.MustSend(ClientboundMessagePacket{Message: "tick"})
+		}
+		time.Sleep(time.Second)
+
+		for _, conn := range s.peers {
+			conn.MustSend(ClientboundMessagePacket{Message: "tock"})
 		}
 	}
 }
