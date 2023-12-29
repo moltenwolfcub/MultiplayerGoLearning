@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"time"
 )
 
 type Server struct {
 	listenAddr string
 	listener   net.Listener
 	quitCh     chan struct{}
-	inMsgCh    chan Packet
+	inMsgCh    chan RecievedPacket
 	peers      map[net.Addr]Connection
 }
 
@@ -20,7 +19,7 @@ func NewServer(listenAddr string) *Server {
 	return &Server{
 		listenAddr: listenAddr,
 		quitCh:     make(chan struct{}),
-		inMsgCh:    make(chan Packet, 10),
+		inMsgCh:    make(chan RecievedPacket, 10),
 		peers:      make(map[net.Addr]Connection),
 	}
 }
@@ -59,9 +58,8 @@ func (s *Server) acceptLoop() {
 
 func (s *Server) readLoop(conn net.Conn) {
 	defer conn.Close()
-	buf := make([]byte, 2048)
 	for {
-		n, err := conn.Read(buf)
+		rawPacket, err := s.peers[conn.RemoteAddr()].Recieve()
 
 		if errors.Is(err, io.EOF) {
 			fmt.Println("Lost connection to peer: ", conn.RemoteAddr())
@@ -70,20 +68,43 @@ func (s *Server) readLoop(conn net.Conn) {
 		}
 
 		if err != nil {
-			fmt.Println("read error: ", err)
+			fmt.Println("read error: ", err.Error())
 			continue
 		}
 
-		fmt.Println("Recieved from connection:", buf[:n])
+		s.inMsgCh <- RecievedPacket{
+			Packet: rawPacket,
+			Sender: conn.RemoteAddr(),
+		}
 	}
 }
 
 func (s *Server) mainLoop() {
 	for {
-		time.Sleep(time.Second * 3)
-
-		for _, conn := range s.peers {
-			conn.Send(ClientboundMessagePacket{Message: "hello"})
+		for rawPacket := range s.inMsgCh {
+			s.handlePacket(rawPacket)
 		}
+	}
+}
+
+func (s *Server) handlePacket(recieved RecievedPacket) error {
+	switch packet := recieved.Packet.(type) {
+	case ServerboundAnnouncePacket:
+		s.announce(packet.Announcement, recieved.Sender)
+	default:
+		return fmt.Errorf("unkown packet: %s", packet)
+	}
+	return nil
+}
+
+func (s *Server) announce(announcement string, sender net.Addr) {
+	fmt.Printf("Connection %v sent announcement with message: %s\n", sender, announcement)
+	for addr, conn := range s.peers {
+		if addr == sender {
+			conn.MustSend(ClientboundMessagePacket{Message: "Your announcment of: '" + announcement + "' has been sent to everyone"})
+			continue
+		}
+
+		conn.MustSend(ClientboundMessagePacket{Message: announcement})
 	}
 }

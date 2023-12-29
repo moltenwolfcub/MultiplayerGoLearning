@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net"
 )
 
@@ -25,12 +26,35 @@ func (c *Client) Start() error {
 
 	c.connection = NewConnection(conn)
 
-	for {
-		rawPacket := c.connection.Recieve()
+	go c.readLoop()
+	return c.mainLoop()
+}
 
-		switch packet := rawPacket.(type) {
-		case ClientboundMessagePacket:
-			fmt.Println(packet.Message)
+func (c *Client) readLoop() error {
+	for {
+		rawPacket := c.connection.MustRecieve()
+		err := c.handlePacket(rawPacket)
+		if err != nil {
+			log.Fatal(err.Error())
 		}
 	}
+}
+
+func (c *Client) mainLoop() error {
+	for {
+		var message string
+		fmt.Print(">>> ")
+		fmt.Scanln(&message)
+		c.connection.MustSend(ServerboundAnnouncePacket{Announcement: message})
+	}
+}
+
+func (c *Client) handlePacket(rawPacket Packet) error {
+	switch packet := rawPacket.(type) {
+	case ClientboundMessagePacket:
+		fmt.Print("\033[2K\r" + packet.Message + "\n>>> ")
+	default:
+		return fmt.Errorf("unkown packet: %s", packet)
+	}
+	return nil
 }
