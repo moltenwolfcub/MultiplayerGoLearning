@@ -19,6 +19,10 @@ func NewClient(listenAddr string) *Client {
 	}
 }
 
+/*
+Connects to the server and starts running the loops
+which handle the rest of the logic
+*/
 func (c *Client) Start() error {
 	conn, err := net.Dial("tcp", c.listenAddr)
 	if err != nil {
@@ -32,6 +36,10 @@ func (c *Client) Start() error {
 	return c.mainLoop()
 }
 
+/*
+A loop to manage clientbound traffic and send recieved packets
+to the handlepacket method for processing.
+*/
 func (c *Client) readLoop() error {
 	for {
 		rawPacket := c.connection.MustRecieve()
@@ -42,6 +50,11 @@ func (c *Client) readLoop() error {
 	}
 }
 
+// ONLY EDIT BELOW THIS LINE! The above code handles the client setup and manages the network connection
+
+/*
+Main loop that'll handle the clientside logic and state.
+*/
 func (c *Client) mainLoop() error {
 	for {
 		var message string
@@ -51,6 +64,10 @@ func (c *Client) mainLoop() error {
 	}
 }
 
+/*
+Will figure out what kind of packet has been recieved
+and correctly handle how it should behave.
+*/
 func (c *Client) handlePacket(rawPacket common.Packet) error {
 	switch packet := rawPacket.(type) {
 	case common.ClientboundMessagePacket:

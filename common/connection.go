@@ -22,6 +22,10 @@ func NewConnection(conn net.Conn) Connection {
 	}
 }
 
+/*
+Encodes a packet with the gob.Encoder and sends it
+along the Connection
+*/
 func (c Connection) Send(packet Packet) error {
 	err := c.Encoder.Encode(&packet)
 	if err != nil {
@@ -30,6 +34,10 @@ func (c Connection) Send(packet Packet) error {
 	return nil
 }
 
+/*
+Waits for incoming data on the Connection before it
+decodes the data into a packet with the gob.Decoder
+*/
 func (c Connection) Recieve() (Packet, error) {
 	var packet Packet
 
@@ -40,6 +48,9 @@ func (c Connection) Recieve() (Packet, error) {
 	return packet, nil
 }
 
+/*
+Same as Send() but panics if it encounters an error
+*/
 func (c Connection) MustSend(packet Packet) {
 	err := c.Encoder.Encode(&packet)
 	if err != nil {
@@ -47,6 +58,9 @@ func (c Connection) MustSend(packet Packet) {
 	}
 }
 
+/*
+Same as Recieve() but panics if it encounters an error
+*/
 func (c Connection) MustRecieve() Packet {
 	var packet Packet
 
