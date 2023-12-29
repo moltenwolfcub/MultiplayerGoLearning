@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"errors"
@@ -6,22 +6,24 @@ import (
 	"io"
 	"net"
 	"time"
+
+	"github.com/moltenwolfcub/MultiplayerGoLearning/common"
 )
 
 type Server struct {
 	listenAddr string
 	listener   net.Listener
 	quitCh     chan struct{}
-	inMsgCh    chan RecievedPacket
-	peers      map[net.Addr]Connection
+	inMsgCh    chan common.RecievedPacket
+	peers      map[net.Addr]common.Connection
 }
 
 func NewServer(listenAddr string) *Server {
 	return &Server{
 		listenAddr: listenAddr,
 		quitCh:     make(chan struct{}),
-		inMsgCh:    make(chan RecievedPacket, 10),
-		peers:      make(map[net.Addr]Connection),
+		inMsgCh:    make(chan common.RecievedPacket, 10),
+		peers:      make(map[net.Addr]common.Connection),
 	}
 }
 
@@ -52,7 +54,7 @@ func (s *Server) acceptLoop() {
 		}
 
 		fmt.Println("New connection to the server: ", conn.RemoteAddr())
-		s.peers[conn.RemoteAddr()] = NewConnection(conn)
+		s.peers[conn.RemoteAddr()] = common.NewConnection(conn)
 
 		go s.readLoop(conn)
 	}
@@ -74,7 +76,7 @@ func (s *Server) readLoop(conn net.Conn) {
 			continue
 		}
 
-		s.inMsgCh <- RecievedPacket{
+		s.inMsgCh <- common.RecievedPacket{
 			Packet: rawPacket,
 			Sender: conn.RemoteAddr(),
 		}
@@ -92,19 +94,19 @@ func (s *Server) mainLoop() {
 		time.Sleep(time.Second)
 
 		for _, conn := range s.peers {
-			conn.MustSend(ClientboundMessagePacket{Message: "tick"})
+			conn.MustSend(common.ClientboundMessagePacket{Message: "tick"})
 		}
 		time.Sleep(time.Second)
 
 		for _, conn := range s.peers {
-			conn.MustSend(ClientboundMessagePacket{Message: "tock"})
+			conn.MustSend(common.ClientboundMessagePacket{Message: "tock"})
 		}
 	}
 }
 
-func (s *Server) handlePacket(recieved RecievedPacket) error {
+func (s *Server) handlePacket(recieved common.RecievedPacket) error {
 	switch packet := recieved.Packet.(type) {
-	case ServerboundAnnouncePacket:
+	case common.ServerboundAnnouncePacket:
 		s.announce(packet.Announcement, recieved.Sender)
 	default:
 		return fmt.Errorf("unkown packet: %s", packet)
@@ -116,10 +118,10 @@ func (s *Server) announce(announcement string, sender net.Addr) {
 	fmt.Printf("Connection %v sent announcement with message: %s\n", sender, announcement)
 	for addr, conn := range s.peers {
 		if addr == sender {
-			conn.MustSend(ClientboundMessagePacket{Message: "Your announcment of: '" + announcement + "' has been sent to everyone"})
+			conn.MustSend(common.ClientboundMessagePacket{Message: "Your announcment of: '" + announcement + "' has been sent to everyone"})
 			continue
 		}
 
-		conn.MustSend(ClientboundMessagePacket{Message: announcement})
+		conn.MustSend(common.ClientboundMessagePacket{Message: announcement})
 	}
 }

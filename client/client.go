@@ -1,14 +1,16 @@
-package main
+package client
 
 import (
 	"fmt"
 	"log"
 	"net"
+
+	"github.com/moltenwolfcub/MultiplayerGoLearning/common"
 )
 
 type Client struct {
 	listenAddr string
-	connection Connection
+	connection common.Connection
 }
 
 func NewClient(listenAddr string) *Client {
@@ -24,7 +26,7 @@ func (c *Client) Start() error {
 	}
 	defer conn.Close()
 
-	c.connection = NewConnection(conn)
+	c.connection = common.NewConnection(conn)
 
 	go c.readLoop()
 	return c.mainLoop()
@@ -45,13 +47,13 @@ func (c *Client) mainLoop() error {
 		var message string
 		fmt.Print(">>> ")
 		fmt.Scanln(&message)
-		c.connection.MustSend(ServerboundAnnouncePacket{Announcement: message})
+		c.connection.MustSend(common.ServerboundAnnouncePacket{Announcement: message})
 	}
 }
 
-func (c *Client) handlePacket(rawPacket Packet) error {
+func (c *Client) handlePacket(rawPacket common.Packet) error {
 	switch packet := rawPacket.(type) {
-	case ClientboundMessagePacket:
+	case common.ClientboundMessagePacket:
 		fmt.Print("\033[2K\r" + packet.Message + "\n>>> ")
 	default:
 		return fmt.Errorf("unkown packet: %s", packet)

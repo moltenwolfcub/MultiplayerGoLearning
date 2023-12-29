@@ -4,12 +4,16 @@ import (
 	"flag"
 	"fmt"
 	"log"
+
+	"github.com/moltenwolfcub/MultiplayerGoLearning/client"
+	"github.com/moltenwolfcub/MultiplayerGoLearning/common"
+	"github.com/moltenwolfcub/MultiplayerGoLearning/server"
 )
 
 var sideFlag string
 
 func main() {
-	RegisterPackets()
+	common.RegisterPackets()
 
 	flag.StringVar(&sideFlag, "side", "", "'server' or 'client'")
 	flag.Parse()
@@ -17,13 +21,13 @@ func main() {
 	if sideFlag == "server" {
 		fmt.Println("server")
 
-		server := NewServer(":2525")
+		server := server.NewServer(":2525")
 
 		log.Fatal(server.Start())
 
 	} else if sideFlag == "client" {
 		fmt.Println("client")
-		client := NewClient(":2525")
+		client := client.NewClient(":2525")
 
 		log.Fatal(client.Start())
 	} else {
