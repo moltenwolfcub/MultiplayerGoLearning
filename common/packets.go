@@ -6,7 +6,6 @@ import (
 )
 
 type Packet interface {
-	markPacket()
 }
 
 type RecievedPacket struct {
@@ -21,11 +20,9 @@ func RegisterPackets() {
 }
 
 type ClientboundMessagePacket struct {
-	Packet
 	Message string
 }
 
 type ServerboundAnnouncePacket struct {
-	Packet
 	Announcement string
 }
