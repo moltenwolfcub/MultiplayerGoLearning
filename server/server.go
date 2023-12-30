@@ -39,6 +39,12 @@ func (s *Server) Start() error {
 	defer listener.Close()
 	s.listener = listener
 
+	addr, ok := s.listener.Addr().(*net.TCPAddr)
+	if !ok {
+		return fmt.Errorf("couldn't convert listener's address to a TCP address")
+	}
+	fmt.Printf("Local server hosted on port %d\n", addr.Port)
+
 	go s.mainLoop()
 	go s.packetLoop()
 	go s.acceptLoop()
