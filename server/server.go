@@ -2,7 +2,6 @@ package server
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"time"
@@ -19,6 +18,7 @@ type Server struct {
 }
 
 func NewServer(listenAddr string) *Server {
+
 	return &Server{
 		listenAddr: listenAddr,
 		quitCh:     make(chan struct{}),
@@ -31,19 +31,19 @@ func NewServer(listenAddr string) *Server {
 Sets up the connection the network and starts running all
 the loops to handle the connection
 */
-func (s *Server) Start() error {
+func (s *Server) Start() {
 	listener, err := net.Listen("tcp", s.listenAddr)
 	if err != nil {
-		return err
+		common.ErrorLogger.Fatal(err)
 	}
 	defer listener.Close()
 	s.listener = listener
 
 	addr, ok := s.listener.Addr().(*net.TCPAddr)
 	if !ok {
-		return fmt.Errorf("couldn't convert listener's address to a TCP address")
+		common.ErrorLogger.Fatal("couldn't convert listener's address to a TCP address")
 	}
-	fmt.Printf("Local server hosted on port %d\n", addr.Port)
+	common.InfoLogger.Printf("Local server hosted on port %d\n", addr.Port)
 
 	go s.mainLoop()
 	go s.packetLoop()
@@ -51,8 +51,6 @@ func (s *Server) Start() error {
 
 	<-s.quitCh
 	close(s.inMsgCh)
-
-	return nil
 }
 
 /*
@@ -63,11 +61,11 @@ func (s *Server) acceptLoop() {
 	for {
 		conn, err := s.listener.Accept()
 		if err != nil {
-			fmt.Println("accept error: ", err)
+			common.WarningLogger.Println("accept error: ", err)
 			continue
 		}
 
-		fmt.Println("New connection to the server: ", conn.RemoteAddr())
+		common.InfoLogger.Println("New connection to the server: ", conn.RemoteAddr())
 		s.peers[conn.RemoteAddr()] = common.NewConnection(conn)
 
 		go s.readLoop(conn)
@@ -87,13 +85,13 @@ func (s *Server) readLoop(conn net.Conn) {
 		rawPacket, err := s.peers[conn.RemoteAddr()].Recieve()
 
 		if errors.Is(err, io.EOF) {
-			fmt.Println("Lost connection to peer: ", conn.RemoteAddr())
+			common.InfoLogger.Println("Lost connection to peer: ", conn.RemoteAddr())
 			delete(s.peers, conn.RemoteAddr())
 			return
 		}
 
 		if err != nil {
-			fmt.Println("read error: ", err.Error())
+			common.WarningLogger.Println("read error: ", err.Error())
 			continue
 		}
 
@@ -138,18 +136,17 @@ func (s *Server) mainLoop() {
 Will figure out what kind of packet has been recieved
 and correctly handle how it should behave.
 */
-func (s *Server) handlePacket(recieved common.RecievedPacket) error {
+func (s *Server) handlePacket(recieved common.RecievedPacket) {
 	switch packet := recieved.Packet.(type) {
 	case common.ServerboundAnnouncePacket:
 		s.announce(packet.Announcement, recieved.Sender)
 	default:
-		return fmt.Errorf("unknown packet: %s", packet)
+		common.ErrorLogger.Fatalf("unknown packet: %s", packet)
 	}
-	return nil
 }
 
 func (s *Server) announce(announcement string, sender net.Addr) {
-	fmt.Printf("Connection %v sent announcement with message: %s\n", sender, announcement)
+	common.InfoLogger.Printf("Connection %v sent announcement with message: %s\n", sender, announcement)
 	for addr, conn := range s.peers {
 		if addr == sender {
 			conn.MustSend(common.ClientboundMessagePacket{Message: "Your announcment of: '" + announcement + "' has been sent to everyone"})

@@ -28,8 +28,10 @@ func main() {
 		fmt.Println("server")
 
 		server := server.NewServer(portFlag)
+		cleanup := common.SetupServerLogger()
+		defer cleanup()
 
-		log.Fatal(server.Start())
+		server.Start()
 
 	} else if sideFlag == "client" {
 		if sideFlag == "" {
