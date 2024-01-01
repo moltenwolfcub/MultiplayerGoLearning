@@ -1,9 +1,12 @@
 package client
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"strings"
 
 	"github.com/moltenwolfcub/MultiplayerGoLearning/common"
 )
@@ -56,10 +59,15 @@ func (c *Client) readLoop() error {
 Main loop that'll handle the clientside logic and state.
 */
 func (c *Client) mainLoop() error {
+	reader := bufio.NewReader(os.Stdin)
+
 	for {
-		var message string
 		fmt.Print(">>> ")
-		fmt.Scanln(&message)
+		message, err := reader.ReadString('\n')
+		message = strings.TrimSpace(message)
+		if err != nil {
+			return err
+		}
 		c.connection.MustSend(common.ServerboundAnnouncePacket{Announcement: message})
 	}
 }
