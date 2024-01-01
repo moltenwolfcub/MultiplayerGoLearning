@@ -121,14 +121,14 @@ func (s *Server) mainLoop() {
 	for {
 		time.Sleep(time.Second)
 
-		for _, conn := range s.peers {
-			conn.MustSend(common.ClientboundMessagePacket{Message: "tick"})
-		}
-		time.Sleep(time.Second)
+		// for _, conn := range s.peers {
+		// 	conn.MustSend(common.ClientboundMessagePacket{Message: "tick"})
+		// }
+		// time.Sleep(time.Second)
 
-		for _, conn := range s.peers {
-			conn.MustSend(common.ClientboundMessagePacket{Message: "tock"})
-		}
+		// for _, conn := range s.peers {
+		// 	conn.MustSend(common.ClientboundMessagePacket{Message: "tock"})
+		// }
 	}
 }
 
